@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,11 @@ import TaskDialog from "./TaskDialog";
 import FilterPopover from "./FilterPopover";
 import TaskCalendar from "./TaskCalendar";
 import { useTaskStore, statusColumns } from '@/lib/task-service';
+
+// Define custom CSS properties interface
+interface CustomCSSProperties extends React.CSSProperties {
+  '--index'?: number;
+}
 
 export default function TaskView() {
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'calendar'>('kanban');
@@ -166,7 +172,7 @@ export default function TaskView() {
                           style={{ 
                             ...provided.draggableProps.style,
                             '--index': index,
-                          } as React.CSSProperties}
+                          } as CustomCSSProperties}
                           onClick={() => handleEditTask(task)}
                         >
                           <TaskCard task={task} />
@@ -214,7 +220,7 @@ export default function TaskView() {
           <div 
             key={task.id} 
             className="animate-enter cursor-pointer" 
-            style={{ '--index': index } as React.CSSProperties}
+            style={{ '--index': index } as CustomCSSProperties}
             onClick={() => handleEditTask(task)}
           >
             <TaskCard task={task} isListView />
