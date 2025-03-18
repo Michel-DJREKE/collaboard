@@ -21,6 +21,7 @@ import TaskDialog from "./TaskDialog";
 import FilterPopover from "./FilterPopover";
 import TaskCalendar from "./TaskCalendar";
 import { useTaskStore, statusColumns } from '@/lib/task-service';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Define custom CSS properties interface
 interface CustomCSSProperties extends React.CSSProperties {
@@ -32,6 +33,7 @@ export default function TaskView() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<any>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const tasks = useTaskStore(state => state.tasks);
   const getTasks = useTaskStore(state => state.getTasks);
@@ -122,7 +124,12 @@ export default function TaskView() {
   
   const renderKanbanView = () => (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+      <div className={cn(
+        "grid gap-4 mt-4",
+        isMobile 
+          ? "grid-cols-1 overflow-x-auto pb-4" 
+          : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+      )}>
         {statusColumns.map(column => (
           <div key={column.id} className="flex flex-col">
             <div className="flex items-center justify-between mb-3">
@@ -197,7 +204,7 @@ export default function TaskView() {
               }}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Ajouter une tâche
+              {!isMobile ? "Ajouter une tâche" : "Ajouter"}
             </Button>
           </div>
         ))}
@@ -275,21 +282,21 @@ export default function TaskView() {
               </TabsTrigger>
             </TabsList>
             
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-grow sm:flex-grow-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input 
-                  placeholder="Rechercher une tâche..." 
-                  className="pl-9 w-[200px] sm:w-[250px] bg-secondary focus-visible:ring-taski-blue"
+                  placeholder={isMobile ? "Rechercher..." : "Rechercher une tâche..."} 
+                  className="pl-9 w-full sm:w-[250px] bg-secondary focus-visible:ring-taski-blue"
                   onChange={handleSearch}
                 />
               </div>
               
               <FilterPopover />
               
-              <Button variant="default" className="gap-2" onClick={handleCreateTask}>
+              <Button variant="default" className={cn("gap-2", isMobile && "px-3")} onClick={handleCreateTask}>
                 <Plus className="h-4 w-4" />
-                <span>Nouvelle tâche</span>
+                {!isMobile && <span>Nouvelle tâche</span>}
               </Button>
             </div>
           </div>
