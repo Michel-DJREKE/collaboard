@@ -42,13 +42,15 @@ const AppLayout = () => {
         <div className="h-2 w-48 bg-taski-gray-200 dark:bg-taski-gray-700 rounded-full overflow-hidden">
           <div className="h-full bg-taski-blue animate-[progress_1.5s_ease-in-out_infinite]"></div>
         </div>
-        <style jsx>{`
-          @keyframes progress {
-            0% { width: 0%; transform: translateX(0); }
-            50% { width: 100%; transform: translateX(0); }
-            100% { width: 0%; transform: translateX(100%); }
-          }
-        `}</style>
+        <style>
+          {`
+            @keyframes progress {
+              0% { width: 0%; transform: translateX(0); }
+              50% { width: 100%; transform: translateX(0); }
+              100% { width: 0%; transform: translateX(100%); }
+            }
+          `}
+        </style>
       </div>
     );
   }
