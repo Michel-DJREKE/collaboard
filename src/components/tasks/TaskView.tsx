@@ -1,5 +1,7 @@
 
 import { useState } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -11,198 +13,236 @@ import {
   Search,
   Plus,
   Filter,
-  SlidersHorizontal
+  SlidersHorizontal,
+  AlertCircle
 } from "lucide-react";
 import TaskCard from "./TaskCard";
-
-// Types for our mock data
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'to-do' | 'in-progress' | 'review' | 'done';
-  dueDate?: string;
-  assignee?: {
-    name: string;
-    avatar?: string;
-    initials?: string;
-  };
-  tags?: string[];
-  progress?: number;
-}
-
-// Sample tasks data
-const TASKS: Task[] = [
-  {
-    id: '1',
-    title: 'Concevoir les maquettes du dashboard',
-    description: 'Créer les wireframes et maquettes pour la nouvelle interface',
-    priority: 'high',
-    status: 'to-do',
-    dueDate: '2023-10-25',
-    assignee: {
-      name: 'Sophie Martin',
-      initials: 'SM'
-    },
-    tags: ['Design', 'UI/UX'],
-    progress: 0
-  },
-  {
-    id: '2',
-    title: 'Développer la page d\'accueil',
-    description: 'Implémenter le frontend de la page d\'accueil selon les maquettes',
-    priority: 'medium',
-    status: 'in-progress',
-    dueDate: '2023-10-30',
-    assignee: {
-      name: 'Thomas Dubois',
-      initials: 'TD'
-    },
-    tags: ['Frontend', 'React'],
-    progress: 40
-  },
-  {
-    id: '3',
-    title: 'Optimiser les requêtes API',
-    priority: 'medium',
-    status: 'in-progress',
-    dueDate: '2023-11-05',
-    assignee: {
-      name: 'Marie Leroy',
-      initials: 'ML'
-    },
-    tags: ['Backend', 'Performance'],
-    progress: 60
-  },
-  {
-    id: '4',
-    title: 'Tester les fonctionnalités principales',
-    description: 'Réaliser des tests sur les fonctionnalités clés de l\'application',
-    priority: 'high',
-    status: 'review',
-    dueDate: '2023-11-02',
-    assignee: {
-      name: 'Lucas Bernard',
-      initials: 'LB'
-    },
-    tags: ['QA', 'Testing'],
-    progress: 80
-  },
-  {
-    id: '5',
-    title: 'Rédiger la documentation technique',
-    priority: 'low',
-    status: 'to-do',
-    dueDate: '2023-11-10',
-    tags: ['Documentation'],
-    progress: 0
-  },
-  {
-    id: '6',
-    title: 'Implémenter l\'authentification',
-    description: 'Mettre en place le système d\'authentification avec JWT',
-    priority: 'high',
-    status: 'done',
-    assignee: {
-      name: 'Thomas Dubois',
-      initials: 'TD'
-    },
-    tags: ['Security', 'Backend'],
-    progress: 100
-  },
-  {
-    id: '7',
-    title: 'Améliorer la réactivité mobile',
-    priority: 'medium',
-    status: 'to-do',
-    dueDate: '2023-11-15',
-    assignee: {
-      name: 'Sophie Martin',
-      initials: 'SM'
-    },
-    tags: ['Responsive', 'CSS'],
-    progress: 0
-  },
-  {
-    id: '8',
-    title: 'Déployer en production',
-    priority: 'high',
-    status: 'to-do',
-    dueDate: '2023-11-20',
-    tags: ['DevOps'],
-    progress: 0
-  },
-];
+import TaskDialog from "./TaskDialog";
+import FilterPopover from "./FilterPopover";
+import TaskCalendar from "./TaskCalendar";
+import { useTaskStore, statusColumns } from '@/lib/task-service';
 
 export default function TaskView() {
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'calendar'>('kanban');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentTask, setCurrentTask] = useState<any>(null);
+  const { toast } = useToast();
   
-  const statusColumns = [
-    { id: 'to-do', title: 'À faire' },
-    { id: 'in-progress', title: 'En cours' },
-    { id: 'review', title: 'En revue' },
-    { id: 'done', title: 'Terminé' }
-  ];
+  const tasks = useTaskStore(state => state.tasks);
+  const getTasks = useTaskStore(state => state.getTasks);
+  const addTask = useTaskStore(state => state.addTask);
+  const updateTask = useTaskStore(state => state.updateTask);
+  const moveTask = useTaskStore(state => state.moveTask);
+  const setSearchQuery = useTaskStore(state => state.setSearchQuery);
+  
+  const handleDragEnd = (result: DropResult) => {
+    const { destination, source, draggableId } = result;
+    
+    // Si pas de destination (abandonné en dehors d'une zone), ne rien faire
+    if (!destination) return;
+    
+    // Si même colonne et même position, ne rien faire
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+    
+    // Mise à jour du statut de la tâche
+    moveTask(
+      draggableId, 
+      destination.droppableId as 'to-do' | 'in-progress' | 'review' | 'done'
+    );
+    
+    toast({
+      title: "Tâche déplacée",
+      description: `La tâche a été déplacée vers "${statusColumns.find(s => s.id === destination.droppableId)?.title}"`,
+    });
+  };
+  
+  const handleCreateTask = () => {
+    setCurrentTask(null);
+    setIsDialogOpen(true);
+  };
+  
+  const handleEditTask = (task: any) => {
+    setCurrentTask(task);
+    setIsDialogOpen(true);
+  };
+  
+  const handleSaveTask = (values: any) => {
+    if (currentTask) {
+      // Mise à jour d'une tâche existante
+      updateTask(currentTask.id, {
+        ...values,
+        assignee: values.assigneeId 
+          ? { 
+              name: TEAM_MEMBERS.find(m => m.id === values.assigneeId)?.name || '',
+              initials: TEAM_MEMBERS.find(m => m.id === values.assigneeId)?.initials || ''
+            }
+          : undefined
+      });
+      
+      toast({
+        title: "Tâche mise à jour",
+        description: "Les modifications ont été enregistrées avec succès.",
+      });
+    } else {
+      // Création d'une nouvelle tâche
+      addTask({
+        title: values.title,
+        description: values.description,
+        priority: values.priority,
+        status: values.status,
+        dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
+        assignee: values.assigneeId 
+          ? { 
+              name: TEAM_MEMBERS.find(m => m.id === values.assigneeId)?.name || '',
+              initials: TEAM_MEMBERS.find(m => m.id === values.assigneeId)?.initials || ''
+            }
+          : undefined,
+        tags: values.tags,
+      });
+      
+      toast({
+        title: "Tâche créée",
+        description: "Une nouvelle tâche a été ajoutée avec succès.",
+      });
+    }
+  };
+  
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
   
   const getTasksByStatus = (status: string) => {
-    return TASKS.filter(task => task.status === status);
+    return getTasks(status);
   };
   
   const renderKanbanView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-      {statusColumns.map(column => (
-        <div key={column.id} className="flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center">
-              <h3 className="font-medium text-sm">{column.title}</h3>
-              <div className="ml-2 bg-taski-gray-200 dark:bg-taski-gray-700 text-taski-gray-600 dark:text-taski-gray-400 text-xs px-2 py-0.5 rounded-full">
-                {getTasksByStatus(column.id).length}
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        {statusColumns.map(column => (
+          <div key={column.id} className="flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <h3 className="font-medium text-sm">{column.title}</h3>
+                <div className="ml-2 bg-taski-gray-200 dark:bg-taski-gray-700 text-taski-gray-600 dark:text-taski-gray-400 text-xs px-2 py-0.5 rounded-full">
+                  {getTasksByStatus(column.id).length}
+                </div>
               </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6"
+                onClick={() => {
+                  setCurrentTask({
+                    status: column.id,
+                    priority: 'medium',
+                  });
+                  setIsDialogOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
-            <Button variant="ghost" size="icon" className="h-6 w-6">
-              <Plus className="h-4 w-4" />
+            
+            <Droppable droppableId={column.id}>
+              {(provided) => (
+                <div 
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="space-y-3 flex-grow min-h-[200px]"
+                >
+                  {getTasksByStatus(column.id).length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-20 border border-dashed rounded-lg text-muted-foreground">
+                      <p className="text-xs text-center">Aucune tâche</p>
+                    </div>
+                  )}
+                  
+                  {getTasksByStatus(column.id).map((task, index) => (
+                    <Draggable key={task.id} draggableId={task.id} index={index}>
+                      {(provided) => (
+                        <div 
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="animate-enter" 
+                          style={{ 
+                            ...provided.draggableProps.style,
+                            '--index': index 
+                          } as React.CSSProperties}
+                          onClick={() => handleEditTask(task)}
+                        >
+                          <TaskCard task={task} />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+            
+            <Button 
+              variant="ghost" 
+              className="mt-2 justify-center text-muted-foreground border border-dashed border-taski-gray-300 dark:border-taski-gray-700 hover:border-taski-blue hover:text-taski-blue bg-transparent h-10"
+              onClick={() => {
+                setCurrentTask({
+                  status: column.id,
+                  priority: 'medium',
+                });
+                setIsDialogOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter une tâche
             </Button>
           </div>
-          
-          <div className="space-y-3 flex-grow">
-            {getTasksByStatus(column.id).map(task => (
-              <div key={task.id} className="animate-enter" style={{ '--index': getTasksByStatus(column.id).indexOf(task) } as React.CSSProperties}>
-                <TaskCard task={task} />
-              </div>
-            ))}
-          </div>
-          
-          <Button 
-            variant="ghost" 
-            className="mt-2 justify-center text-muted-foreground border border-dashed border-taski-gray-300 dark:border-taski-gray-700 hover:border-taski-blue hover:text-taski-blue bg-transparent h-10"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter une tâche
-          </Button>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </DragDropContext>
   );
   
   const renderListView = () => (
     <div className="mt-4 space-y-3">
-      {TASKS.map((task, index) => (
-        <div key={task.id} className="animate-enter" style={{ '--index': index } as React.CSSProperties}>
-          <TaskCard task={task} isListView />
+      {getTasks().length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg text-muted-foreground">
+          <AlertCircle className="h-12 w-12 mb-4 text-muted-foreground/50" />
+          <p className="text-center">Aucune tâche ne correspond à vos filtres</p>
+          <Button variant="outline" className="mt-4" onClick={() => useTaskStore.getState().clearFilters()}>
+            Effacer les filtres
+          </Button>
         </div>
-      ))}
+      ) : (
+        getTasks().map((task, index) => (
+          <div 
+            key={task.id} 
+            className="animate-enter cursor-pointer" 
+            style={{ '--index': index } as React.CSSProperties}
+            onClick={() => handleEditTask(task)}
+          >
+            <TaskCard task={task} isListView />
+          </div>
+        ))
+      )}
     </div>
   );
   
   const renderCalendarView = () => (
-    <div className="mt-4 h-[500px] flex items-center justify-center border rounded-lg">
-      <div className="text-center text-muted-foreground">
-        <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
-        <p>Vue calendrier à venir</p>
-      </div>
+    <div className="mt-4 h-[600px]">
+      <TaskCalendar />
     </div>
   );
+  
+  // Liste des membres de l'équipe pour l'assignation
+  const TEAM_MEMBERS = [
+    { id: '1', name: 'Sophie Martin', avatar: null, initials: 'SM' },
+    { id: '2', name: 'Thomas Dubois', avatar: null, initials: 'TD' },
+    { id: '3', name: 'Marie Leroy', avatar: null, initials: 'ML' },
+    { id: '4', name: 'Lucas Bernard', avatar: null, initials: 'LB' },
+  ];
   
   return (
     <div className="h-full flex flex-col">
@@ -242,14 +282,13 @@ export default function TaskView() {
                 <Input 
                   placeholder="Rechercher une tâche..." 
                   className="pl-9 w-[200px] sm:w-[250px] bg-secondary focus-visible:ring-taski-blue"
+                  onChange={handleSearch}
                 />
               </div>
               
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
+              <FilterPopover />
               
-              <Button variant="default" className="gap-2">
+              <Button variant="default" className="gap-2" onClick={handleCreateTask}>
                 <Plus className="h-4 w-4" />
                 <span>Nouvelle tâche</span>
               </Button>
@@ -269,6 +308,13 @@ export default function TaskView() {
           </TabsContent>
         </Tabs>
       </div>
+      
+      <TaskDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen} 
+        task={currentTask}
+        onSave={handleSaveTask}
+      />
     </div>
   );
 }

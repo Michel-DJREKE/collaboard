@@ -5,6 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useTaskStore } from "@/lib/task-service";
+import { useToast } from "@/hooks/use-toast";
 
 interface TaskProps {
   task: {
@@ -23,9 +33,32 @@ interface TaskProps {
     progress?: number;
   };
   isListView?: boolean;
+  onEdit?: (task: any) => void;
 }
 
-export default function TaskCard({ task, isListView = false }: TaskProps) {
+export default function TaskCard({ task, isListView = false, onEdit }: TaskProps) {
+  const { toast } = useToast();
+  const deleteTask = useTaskStore(state => state.deleteTask);
+  const moveTask = useTaskStore(state => state.moveTask);
+  
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Empêcher le clic de propager au parent
+    deleteTask(task.id);
+    toast({
+      title: "Tâche supprimée",
+      description: "La tâche a été supprimée avec succès",
+    });
+  };
+  
+  const handleStatusChange = (e: React.MouseEvent, status: 'to-do' | 'in-progress' | 'review' | 'done') => {
+    e.stopPropagation(); // Empêcher le clic de propager au parent
+    moveTask(task.id, status);
+    toast({
+      title: "Statut mis à jour",
+      description: `La tâche est maintenant "${status === 'to-do' ? 'À faire' : status === 'in-progress' ? 'En cours' : status === 'review' ? 'En revue' : 'Terminé'}"`,
+    });
+  };
+  
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -69,9 +102,45 @@ export default function TaskCard({ task, isListView = false }: TaskProps) {
               <div className={cn("h-2 w-2 rounded-full", getStatusColor(task.status))}></div>
               <h3 className="font-medium line-clamp-1">{task.title}</h3>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-1">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-1">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={(e) => handleStatusChange(e, 'to-do')}
+                  disabled={task.status === 'to-do'}
+                >
+                  Marquer comme à faire
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => handleStatusChange(e, 'in-progress')}
+                  disabled={task.status === 'in-progress'}
+                >
+                  Marquer comme en cours
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => handleStatusChange(e, 'review')}
+                  disabled={task.status === 'review'}
+                >
+                  Marquer comme en revue
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => handleStatusChange(e, 'done')}
+                  disabled={task.status === 'done'}
+                >
+                  Marquer comme terminé
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
+                  Supprimer
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           
           {task.description && (
@@ -118,9 +187,45 @@ export default function TaskCard({ task, isListView = false }: TaskProps) {
     <div className="task-card flex flex-col hover:border-taski-blue/40">
       <div className="flex items-start justify-between">
         <div className={cn("h-2 w-2 rounded-full mt-1", getStatusColor(task.status))}></div>
-        <Button variant="ghost" size="icon" className="h-7 w-7 -mt-1 -mr-1">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 -mt-1 -mr-1">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Options</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={(e) => handleStatusChange(e, 'to-do')}
+              disabled={task.status === 'to-do'}
+            >
+              Marquer comme à faire
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => handleStatusChange(e, 'in-progress')}
+              disabled={task.status === 'in-progress'}
+            >
+              Marquer comme en cours
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => handleStatusChange(e, 'review')}
+              disabled={task.status === 'review'}
+            >
+              Marquer comme en revue
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => handleStatusChange(e, 'done')}
+              disabled={task.status === 'done'}
+            >
+              Marquer comme terminé
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
+              Supprimer
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       
       <h3 className="font-medium mt-2 line-clamp-2">{task.title}</h3>
