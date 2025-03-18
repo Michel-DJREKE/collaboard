@@ -5,12 +5,12 @@ import {
   Plus, 
   Filter, 
   FolderPlus,
-  File as FileIcon,
+  FileIcon,
   Image,
   FileText,
-  FileSpreadsheet,
-  FilePresentation,
-  FilePdf, 
+  Table,
+  Presentation,
+  File, 
   Grid,
   List,
   MoreHorizontal,
@@ -146,11 +146,11 @@ export default function Files() {
       case 'document':
         return <FileText className="h-6 w-6 text-taski-blue" />;
       case 'spreadsheet':
-        return <FileSpreadsheet className="h-6 w-6 text-taski-accent-purple" />;
+        return <Table className="h-6 w-6 text-taski-accent-purple" />;
       case 'presentation':
-        return <FilePresentation className="h-6 w-6 text-taski-accent-yellow" />;
+        return <Presentation className="h-6 w-6 text-taski-accent-yellow" />;
       case 'pdf':
-        return <FilePdf className="h-6 w-6 text-taski-accent-red" />;
+        return <File className="h-6 w-6 text-taski-accent-red" />;
     }
   };
   
@@ -239,7 +239,7 @@ export default function Files() {
               
               <div className="text-center">
                 <div className="flex items-center justify-center h-10 w-10 rounded-full bg-taski-accent-yellow/20 text-taski-accent-yellow mx-auto mb-1">
-                  <FilePresentation className="h-5 w-5" />
+                  <Presentation className="h-5 w-5" />
                 </div>
                 <p className="text-xs font-medium">Autres</p>
                 <p className="text-xs text-muted-foreground">2.5 Go</p>

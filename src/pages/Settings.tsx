@@ -12,12 +12,15 @@ import {
   Check,
   Mail,
   Phone,
-  LanguagesIcon,
+  Languages as LanguagesIcon,
   Moon,
   Sun,
   Users,
   Clock,
-  LogOut
+  LogOut,
+  FileText,
+  MessageSquare,
+  Download as DownloadIcon
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -813,7 +816,7 @@ export default function Settings() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">29,00 €</span>
                         <Button variant="ghost" size="icon">
-                          <Download className="h-4 w-4" />
+                          <DownloadIcon className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -826,7 +829,7 @@ export default function Settings() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">29,00 €</span>
                         <Button variant="ghost" size="icon">
-                          <Download className="h-4 w-4" />
+                          <DownloadIcon className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -839,7 +842,7 @@ export default function Settings() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">29,00 €</span>
                         <Button variant="ghost" size="icon">
-                          <Download className="h-4 w-4" />
+                          <DownloadIcon className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
