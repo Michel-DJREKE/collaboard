@@ -11,6 +11,10 @@ import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
 import NotFound from "./pages/NotFound";
+import Discussions from "./pages/Discussions";
+import Files from "./pages/Files";
+import Stats from "./pages/Stats";
+import Settings from "./pages/Settings";
 
 // Layout Components
 import Header from "./components/layout/Header";
@@ -67,12 +71,6 @@ const AppLayout = () => {
     </div>
   );
 };
-
-// Placeholder components for routes not yet implemented
-const Discussions = () => <div className="p-8 text-center">Page Discussions à venir</div>;
-const Files = () => <div className="p-8 text-center">Page Fichiers à venir</div>;
-const Stats = () => <div className="p-8 text-center">Page Statistiques à venir</div>;
-const Settings = () => <div className="p-8 text-center">Page Paramètres à venir</div>;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
