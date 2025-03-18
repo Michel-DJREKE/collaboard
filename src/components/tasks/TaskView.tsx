@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { useToast } from "@/hooks/use-toast";
@@ -38,10 +37,8 @@ export default function TaskView() {
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
     
-    // Si pas de destination (abandonné en dehors d'une zone), ne rien faire
     if (!destination) return;
     
-    // Si même colonne et même position, ne rien faire
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
@@ -49,7 +46,6 @@ export default function TaskView() {
       return;
     }
     
-    // Mise à jour du statut de la tâche
     moveTask(
       draggableId, 
       destination.droppableId as 'to-do' | 'in-progress' | 'review' | 'done'
@@ -73,7 +69,6 @@ export default function TaskView() {
   
   const handleSaveTask = (values: any) => {
     if (currentTask) {
-      // Mise à jour d'une tâche existante
       updateTask(currentTask.id, {
         ...values,
         assignee: values.assigneeId 
@@ -89,7 +84,6 @@ export default function TaskView() {
         description: "Les modifications ont été enregistrées avec succès.",
       });
     } else {
-      // Création d'une nouvelle tâche
       addTask({
         title: values.title,
         description: values.description,
@@ -171,7 +165,7 @@ export default function TaskView() {
                           className="animate-enter" 
                           style={{ 
                             ...provided.draggableProps.style,
-                            '--index': index 
+                            '--index': index,
                           } as React.CSSProperties}
                           onClick={() => handleEditTask(task)}
                         >
@@ -236,7 +230,6 @@ export default function TaskView() {
     </div>
   );
   
-  // Liste des membres de l'équipe pour l'assignation
   const TEAM_MEMBERS = [
     { id: '1', name: 'Sophie Martin', avatar: null, initials: 'SM' },
     { id: '2', name: 'Thomas Dubois', avatar: null, initials: 'TD' },
