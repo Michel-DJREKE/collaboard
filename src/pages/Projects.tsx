@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Types
 interface Project {
   id: string;
   title: string;
@@ -64,7 +62,6 @@ interface Project {
   };
 }
 
-// Sample data
 const INITIAL_PROJECTS: Project[] = [
   {
     id: '1',
@@ -170,7 +167,6 @@ export default function Projects() {
   
   const handleSaveProject = (values: any) => {
     if (currentProject && currentProject.id) {
-      // Update existing project
       setProjects(projects.map(project => 
         project.id === currentProject.id 
           ? { 
@@ -190,7 +186,6 @@ export default function Projects() {
         description: "Les modifications ont été enregistrées avec succès.",
       });
     } else {
-      // Create new project
       const newProject: Project = {
         id: Date.now().toString(),
         title: values.title,
@@ -240,7 +235,7 @@ export default function Projects() {
   };
   
   const getMemberDetails = (memberId: string) => {
-    return TEAM_MEMBERS.find(member => member.id === memberId) || { name: 'Inconnu', initials: '??' };
+    return TEAM_MEMBERS.find(member => member.id === memberId) || { name: 'Inconnu', initials: '??', avatar: null };
   };
   
   return (
@@ -316,7 +311,7 @@ export default function Projects() {
                   const member = getMemberDetails(memberId);
                   return (
                     <Avatar key={memberId}>
-                      <AvatarImage src={member.avatar || undefined} />
+                      {member.avatar && <AvatarImage src={member.avatar} />}
                       <AvatarFallback className="bg-taski-blue text-white text-xs">
                         {member.initials}
                       </AvatarFallback>

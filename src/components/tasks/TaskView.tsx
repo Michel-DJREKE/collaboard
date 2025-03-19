@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { useToast } from "@/hooks/use-toast";
@@ -32,15 +31,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Define custom CSS properties interface
 interface CustomCSSProperties extends React.CSSProperties {
   '--index'?: number;
+}
+
+interface NewTaskPartial {
+  status?: string;
+  priority?: string;
+  dueDate?: string;
+  date?: string;
 }
 
 export default function TaskView() {
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'calendar'>('kanban');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentTask, setCurrentTask] = useState<any>(null);
+  const [currentTask, setCurrentTask] = useState<Task | NewTaskPartial | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -61,7 +66,7 @@ export default function TaskView() {
         if (customEvent.detail.task) {
           setCurrentTask(customEvent.detail.task);
         } else {
-          const newTask = {
+          const newTask: NewTaskPartial = {
             status: customEvent.detail.status || 'to-do',
             priority: customEvent.detail.priority || 'medium',
           };
@@ -135,7 +140,7 @@ export default function TaskView() {
   };
   
   const handleSaveTask = (values: any) => {
-    if (currentTask && currentTask.id) {
+    if (currentTask && 'id' in currentTask && currentTask.id) {
       updateTask(currentTask.id, {
         ...values,
         assignee: values.assigneeId 
