@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { useToast } from "@/hooks/use-toast";
@@ -36,8 +37,8 @@ interface CustomCSSProperties extends React.CSSProperties {
 }
 
 interface NewTaskPartial {
-  status?: string;
-  priority?: string;
+  status?: 'to-do' | 'in-progress' | 'review' | 'done';
+  priority?: 'low' | 'medium' | 'high';
   dueDate?: string;
   date?: string;
 }
