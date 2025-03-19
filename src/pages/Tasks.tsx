@@ -2,6 +2,7 @@
 import { Suspense } from 'react';
 import TaskView from '@/components/tasks/TaskView';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Toaster } from "@/components/ui/toaster";
 
 export default function Tasks() {
   return (
@@ -9,6 +10,7 @@ export default function Tasks() {
       <Suspense fallback={<TaskSkeleton />}>
         <TaskView />
       </Suspense>
+      <Toaster />
     </div>
   );
 }

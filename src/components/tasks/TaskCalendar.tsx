@@ -1,17 +1,23 @@
 
 import { useState } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTaskStore, Task } from '@/lib/task-service';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function TaskCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const tasks = useTaskStore(state => state.tasks);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const startDate = startOfMonth(currentDate);
   const endDate = endOfMonth(currentDate);
@@ -20,8 +26,13 @@ export default function TaskCalendar() {
   const getTasksForDay = (date: Date): Task[] => {
     return tasks.filter(task => {
       if (!task.dueDate) return false;
-      const taskDate = new Date(task.dueDate);
-      return isSameDay(taskDate, date);
+      try {
+        const taskDate = parseISO(task.dueDate);
+        return isSameDay(taskDate, date);
+      } catch (error) {
+        console.error("Invalid date format:", task.dueDate);
+        return false;
+      }
     });
   };
   
@@ -44,6 +55,30 @@ export default function TaskCalendar() {
   
   const nextMonth = () => {
     setCurrentDate(prev => addMonths(prev, 1));
+  };
+  
+  const handleAddTask = (date: Date) => {
+    setSelectedDate(date);
+    // Pass this information to the parent component
+    window.dispatchEvent(new CustomEvent('openTaskDialog', { 
+      detail: { 
+        date: date,
+        status: 'to-do',
+        priority: 'medium' 
+      } 
+    }));
+    
+    toast({
+      title: "Date sélectionnée",
+      description: `Vous pouvez maintenant créer une tâche pour le ${format(date, 'dd MMMM yyyy', { locale: fr })}`
+    });
+  };
+  
+  const handleTaskClick = (task: Task) => {
+    // Pass this information to the parent component
+    window.dispatchEvent(new CustomEvent('openTaskDialog', { 
+      detail: { task } 
+    }));
   };
   
   return (
@@ -78,11 +113,20 @@ export default function TaskCalendar() {
           return (
             <div 
               key={day.toString()} 
-              className={`border ${isSameMonth(day, currentDate) ? 'border-border' : 'border-border/50'} rounded-md min-h-[100px] p-1 flex flex-col`}
+              className={`border ${isSameMonth(day, currentDate) ? 'border-border' : 'border-border/50'} rounded-md min-h-[100px] p-1 flex flex-col relative`}
             >
               <div className={`text-right text-xs p-1 ${!isSameMonth(day, currentDate) ? 'text-muted-foreground' : ''}`}>
                 {format(day, 'd')}
               </div>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-1 top-1 h-5 w-5 opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity"
+                onClick={() => handleAddTask(day)}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
               
               <ScrollArea className="flex-grow">
                 <div className="space-y-1 p-1">
@@ -90,7 +134,10 @@ export default function TaskCalendar() {
                     <TooltipProvider key={task.id}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="text-xs p-1 rounded bg-secondary/50 truncate hover:bg-secondary cursor-pointer">
+                          <div 
+                            className="text-xs p-1 rounded bg-secondary/50 truncate hover:bg-secondary cursor-pointer"
+                            onClick={() => handleTaskClick(task)}
+                          >
                             <div className="flex items-center gap-1">
                               <div className={`h-2 w-2 rounded-full ${
                                 task.status === 'to-do' ? 'bg-taski-gray-400' :
@@ -122,7 +169,15 @@ export default function TaskCalendar() {
                   ))}
                   
                   {dayTasks.length > 3 && (
-                    <div className="text-xs text-muted-foreground text-center">
+                    <div 
+                      className="text-xs text-muted-foreground text-center cursor-pointer hover:underline"
+                      onClick={() => {
+                        toast({
+                          title: `${dayTasks.length - 3} tâches supplémentaires`,
+                          description: "Cliquez sur une date pour voir toutes les tâches",
+                        });
+                      }}
+                    >
                       +{dayTasks.length - 3} de plus
                     </div>
                   )}

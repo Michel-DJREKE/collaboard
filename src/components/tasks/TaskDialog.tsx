@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Tags, Users, CheckSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -51,12 +51,12 @@ interface TaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   task?: {
-    id: string;
-    title: string;
+    id?: string;
+    title?: string;
     description?: string;
-    priority: 'low' | 'medium' | 'high';
-    status: 'to-do' | 'in-progress' | 'review' | 'done';
-    dueDate?: string;
+    priority?: 'low' | 'medium' | 'high';
+    status?: 'to-do' | 'in-progress' | 'review' | 'done';
+    dueDate?: string | Date;
     assignee?: {
       name: string;
       avatar?: string;
@@ -74,7 +74,23 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
   const [selectedTags, setSelectedTags] = useState<string[]>(task?.tags || []);
   const [tagInput, setTagInput] = useState('');
   
-  const isEditMode = !!task;
+  const isEditMode = !!task?.id;
+  
+  // Convert dueDate to Date object if it's a string or date
+  const getDueDate = () => {
+    if (!task?.dueDate) return undefined;
+    
+    if (task.dueDate instanceof Date) {
+      return task.dueDate;
+    }
+    
+    try {
+      return new Date(task.dueDate);
+    } catch (error) {
+      console.error("Invalid date format:", task.dueDate);
+      return undefined;
+    }
+  };
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -83,11 +99,28 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
       description: task?.description || '',
       priority: task?.priority || 'medium',
       status: task?.status || 'to-do',
-      dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
+      dueDate: getDueDate(),
       assigneeId: task?.assignee ? TEAM_MEMBERS.find(member => member.name === task.assignee?.name)?.id : undefined,
       tags: task?.tags || [],
     },
   });
+  
+  // Update form when task changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        title: task?.title || '',
+        description: task?.description || '',
+        priority: task?.priority || 'medium',
+        status: task?.status || 'to-do',
+        dueDate: getDueDate(),
+        assigneeId: task?.assignee ? TEAM_MEMBERS.find(member => member.name === task.assignee?.name)?.id : undefined,
+        tags: [],
+      });
+      
+      setSelectedTags(task?.tags || []);
+    }
+  }, [open, task, form]);
   
   function onSubmit(values: FormValues) {
     values.tags = selectedTags;
@@ -170,6 +203,7 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -197,6 +231,7 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -263,6 +298,7 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>

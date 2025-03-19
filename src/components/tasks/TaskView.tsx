@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -12,16 +12,25 @@ import {
   Calendar as CalendarIcon, 
   Search,
   Plus,
-  Filter,
-  SlidersHorizontal,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from "lucide-react";
 import TaskCard from "./TaskCard";
 import TaskDialog from "./TaskDialog";
 import FilterPopover from "./FilterPopover";
 import TaskCalendar from "./TaskCalendar";
-import { useTaskStore, statusColumns } from '@/lib/task-service';
+import { useTaskStore, statusColumns, Task } from '@/lib/task-service';
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Define custom CSS properties interface
 interface CustomCSSProperties extends React.CSSProperties {
@@ -32,6 +41,8 @@ export default function TaskView() {
   const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'calendar'>('kanban');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<any>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
@@ -40,7 +51,37 @@ export default function TaskView() {
   const addTask = useTaskStore(state => state.addTask);
   const updateTask = useTaskStore(state => state.updateTask);
   const moveTask = useTaskStore(state => state.moveTask);
+  const deleteTask = useTaskStore(state => state.deleteTask);
   const setSearchQuery = useTaskStore(state => state.setSearchQuery);
+  
+  useEffect(() => {
+    const handleOpenTaskDialog = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail) {
+        if (customEvent.detail.task) {
+          setCurrentTask(customEvent.detail.task);
+        } else {
+          const newTask = {
+            status: customEvent.detail.status || 'to-do',
+            priority: customEvent.detail.priority || 'medium',
+          };
+          
+          if (customEvent.detail.date) {
+            newTask.dueDate = customEvent.detail.date;
+          }
+          
+          setCurrentTask(newTask);
+        }
+        setIsDialogOpen(true);
+      }
+    };
+    
+    window.addEventListener('openTaskDialog', handleOpenTaskDialog);
+    
+    return () => {
+      window.removeEventListener('openTaskDialog', handleOpenTaskDialog);
+    };
+  }, []);
   
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -70,13 +111,31 @@ export default function TaskView() {
     setIsDialogOpen(true);
   };
   
-  const handleEditTask = (task: any) => {
+  const handleEditTask = (task: Task) => {
     setCurrentTask(task);
     setIsDialogOpen(true);
   };
   
+  const handleDeleteTask = (taskId: string) => {
+    setTaskToDelete(taskId);
+    setDeleteConfirmOpen(true);
+  };
+  
+  const confirmDeleteTask = () => {
+    if (taskToDelete) {
+      deleteTask(taskToDelete);
+      setTaskToDelete(null);
+      setDeleteConfirmOpen(false);
+      
+      toast({
+        title: "Tâche supprimée",
+        description: "La tâche a été supprimée avec succès.",
+      });
+    }
+  };
+  
   const handleSaveTask = (values: any) => {
-    if (currentTask) {
+    if (currentTask && currentTask.id) {
       updateTask(currentTask.id, {
         ...values,
         assignee: values.assigneeId 
@@ -175,7 +234,7 @@ export default function TaskView() {
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className="animate-enter" 
+                          className="animate-enter relative group" 
                           style={{ 
                             ...provided.draggableProps.style,
                             '--index': index,
@@ -183,6 +242,17 @@ export default function TaskView() {
                           onClick={() => handleEditTask(task)}
                         >
                           <TaskCard task={task} />
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-destructive hover:text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTask(task.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       )}
                     </Draggable>
@@ -226,11 +296,20 @@ export default function TaskView() {
         getTasks().map((task, index) => (
           <div 
             key={task.id} 
-            className="animate-enter cursor-pointer" 
+            className="animate-enter cursor-pointer relative group" 
             style={{ '--index': index } as CustomCSSProperties}
-            onClick={() => handleEditTask(task)}
           >
-            <TaskCard task={task} isListView />
+            <div onClick={() => handleEditTask(task)}>
+              <TaskCard task={task} isListView />
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute top-1/2 right-4 -translate-y-1/2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-destructive hover:text-white"
+              onClick={() => handleDeleteTask(task.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         ))
       )}
@@ -321,6 +400,24 @@ export default function TaskView() {
         task={currentTask}
         onSave={handleSaveTask}
       />
+      
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette tâche ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Cette tâche sera définitivement supprimée
+              de vos projets.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteTask} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
