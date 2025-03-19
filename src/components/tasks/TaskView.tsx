@@ -68,8 +68,8 @@ export default function TaskView() {
           setCurrentTask(customEvent.detail.task);
         } else {
           const newTask: NewTaskPartial = {
-            status: customEvent.detail.status || 'to-do',
-            priority: customEvent.detail.priority || 'medium',
+            status: customEvent.detail.status as 'to-do' | 'in-progress' | 'review' | 'done' || 'to-do',
+            priority: customEvent.detail.priority as 'low' | 'medium' | 'high' || 'medium',
           };
           
           if (customEvent.detail.date) {
@@ -161,7 +161,7 @@ export default function TaskView() {
         title: values.title,
         description: values.description,
         priority: values.priority,
-        status: values.status,
+        status: values.status as 'to-do' | 'in-progress' | 'review' | 'done',
         dueDate: values.dueDate ? values.dueDate.toISOString().split('T')[0] : undefined,
         assignee: values.assigneeId 
           ? { 
@@ -210,7 +210,7 @@ export default function TaskView() {
                 className="h-6 w-6"
                 onClick={() => {
                   setCurrentTask({
-                    status: column.id,
+                    status: column.id as 'to-do' | 'in-progress' | 'review' | 'done',
                     priority: 'medium',
                   });
                   setIsDialogOpen(true);
@@ -273,7 +273,7 @@ export default function TaskView() {
               className="mt-2 justify-center text-muted-foreground border border-dashed border-taski-gray-300 dark:border-taski-gray-700 hover:border-taski-blue hover:text-taski-blue bg-transparent h-10"
               onClick={() => {
                 setCurrentTask({
-                  status: column.id,
+                  status: column.id as 'to-do' | 'in-progress' | 'review' | 'done',
                   priority: 'medium',
                 });
                 setIsDialogOpen(true);
