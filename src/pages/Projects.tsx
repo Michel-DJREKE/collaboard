@@ -40,9 +40,7 @@ import {
   Search,
   List,
   LayoutGrid,
-  Filter,
-  ChevronDown,
-  ChevronUp
+  Filter
 } from "lucide-react";
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -53,9 +51,6 @@ import { Progress } from "@/components/ui/progress";
 import ProjectDialog from "@/components/projects/ProjectDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ProjectFilter from "@/components/projects/ProjectFilter";
-import ProjectTaskList from "@/components/projects/ProjectTaskList";
-import ProjectMemberStats from "@/components/projects/ProjectMemberStats";
-import { useTaskStore } from "@/lib/task-service";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,13 +80,6 @@ interface Project {
     total: number;
     completed: number;
   };
-}
-
-interface TeamMember {
-  id: string;
-  name: string;
-  avatar: string | null;
-  initials: string;
 }
 
 const INITIAL_PROJECTS: Project[] = [
@@ -153,7 +141,7 @@ const INITIAL_PROJECTS: Project[] = [
   }
 ];
 
-const TEAM_MEMBERS: TeamMember[] = [
+const TEAM_MEMBERS = [
   { id: '1', name: 'Sophie Martin', avatar: null, initials: 'SM' },
   { id: '2', name: 'Thomas Dubois', avatar: null, initials: 'TD' },
   { id: '3', name: 'Marie Leroy', avatar: null, initials: 'ML' },
@@ -171,8 +159,6 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showDetails, setShowDetails] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'team'>('overview');
-  const { tasks } = useTaskStore();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
@@ -274,13 +260,8 @@ export default function Projects() {
     }
   };
   
-  const getMemberDetails = (memberId: string): TeamMember => {
-    return TEAM_MEMBERS.find(member => member.id === memberId) || { 
-      id: 'unknown', 
-      name: 'Inconnu', 
-      initials: '??', 
-      avatar: null 
-    };
+  const getMemberDetails = (memberId: string) => {
+    return TEAM_MEMBERS.find(member => member.id === memberId) || { name: 'Inconnu', initials: '??', avatar: null };
   };
 
   const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,7 +280,6 @@ export default function Projects() {
 
   const handleViewDetails = (projectId: string) => {
     setShowDetails(showDetails === projectId ? null : projectId);
-    setActiveTab('overview');
   };
 
   const renderGridView = () => (
@@ -384,77 +364,53 @@ export default function Projects() {
             </Button>
           </CardFooter>
           {showDetails === project.id && (
-            <div className="mt-2 bg-muted/30 rounded-b-lg border-t">
-              <div className="border-b">
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'overview' | 'tasks' | 'team')} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="overview">Aperçu</TabsTrigger>
-                    <TabsTrigger value="tasks">Tâches</TabsTrigger>
-                    <TabsTrigger value="team">Équipe</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-              
-              <div className="p-4">
-                <TabsContent value="overview" className="m-0 space-y-4">
-                  <div>
-                    <h4 className="text-sm font-semibold mb-1">Description</h4>
-                    <p className="text-sm text-muted-foreground">{project.description || "Aucune description disponible"}</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-1">Date de début</h4>
-                      <p className="text-sm text-muted-foreground">{formatDate(project.startDate)}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold mb-1">Date de fin</h4>
-                      <p className="text-sm text-muted-foreground">{formatDate(project.endDate)}</p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="text-sm font-semibold mb-1">Membres du projet</h4>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {project.members.map(memberId => {
-                        const member = getMemberDetails(memberId);
-                        return (
-                          <div key={memberId} className="flex items-center gap-1 text-xs bg-background border rounded-full px-3 py-1">
-                            <Avatar className="h-5 w-5">
-                              {member.avatar && <AvatarImage src={member.avatar} />}
-                              <AvatarFallback className="text-[10px]">{member.initials}</AvatarFallback>
-                            </Avatar>
-                            <span>{member.name}</span>
-                          </div>
-                        );
-                      })}
-                      {project.members.length === 0 && <span className="text-sm text-muted-foreground">Aucun membre</span>}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="text-sm font-semibold mb-1">Progression</h4>
-                    <div className="space-y-2">
-                      <Progress value={project.progress} />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Tâches: {project.tasksCount.completed}/{project.tasksCount.total}</span>
-                        <span>{project.progress}% terminé</span>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
+            <div className="p-4 mt-2 bg-muted/30 rounded-b-lg border-t">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">Description</h4>
+                  <p className="text-sm text-muted-foreground">{project.description || "Aucune description disponible"}</p>
+                </div>
                 
-                <TabsContent value="tasks" className="m-0">
-                  <ProjectTaskList projectId={project.id} />
-                </TabsContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-semibold mb-1">Date de début</h4>
+                    <p className="text-sm text-muted-foreground">{formatDate(project.startDate)}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold mb-1">Date de fin</h4>
+                    <p className="text-sm text-muted-foreground">{formatDate(project.endDate)}</p>
+                  </div>
+                </div>
                 
-                <TabsContent value="team" className="m-0">
-                  <ProjectMemberStats 
-                    projectId={project.id} 
-                    members={project.members.map(id => getMemberDetails(id))}
-                    tasks={tasks}
-                  />
-                </TabsContent>
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">Membres du projet</h4>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {project.members.map(memberId => {
+                      const member = getMemberDetails(memberId);
+                      return (
+                        <div key={memberId} className="flex items-center gap-1 text-xs bg-background border rounded-full px-3 py-1">
+                          <Avatar className="h-5 w-5">
+                            {member.avatar && <AvatarImage src={member.avatar} />}
+                            <AvatarFallback className="text-[10px]">{member.initials}</AvatarFallback>
+                          </Avatar>
+                          <span>{member.name}</span>
+                        </div>
+                      );
+                    })}
+                    {project.members.length === 0 && <span className="text-sm text-muted-foreground">Aucun membre</span>}
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">Progression</h4>
+                  <div className="space-y-2">
+                    <Progress value={project.progress} />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Tâches: {project.tasksCount.completed}/{project.tasksCount.total}</span>
+                      <span>{project.progress}% terminé</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -575,17 +531,7 @@ export default function Projects() {
                 {showDetails === project.id && (
                   <TableRow>
                     <TableCell colSpan={7} className="bg-muted/30 px-6 py-4">
-                      <div className="border-b mb-4">
-                        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'overview' | 'tasks' | 'team')} className="w-full">
-                          <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="overview">Aperçu</TabsTrigger>
-                            <TabsTrigger value="tasks">Tâches</TabsTrigger>
-                            <TabsTrigger value="team">Équipe</TabsTrigger>
-                          </TabsList>
-                        </Tabs>
-                      </div>
-                      
-                      <TabsContent value="overview" className="m-0 space-y-4">
+                      <div className="space-y-4">
                         <div>
                           <h4 className="text-sm font-semibold mb-1">Description complète</h4>
                           <p className="text-sm text-muted-foreground">{project.description || "Aucune description disponible"}</p>
@@ -622,31 +568,19 @@ export default function Projects() {
                             </div>
                           </div>
                         </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="tasks" className="m-0">
-                        <ProjectTaskList projectId={project.id} />
-                      </TabsContent>
-                      
-                      <TabsContent value="team" className="m-0">
-                        <ProjectMemberStats 
-                          projectId={project.id} 
-                          members={project.members.map(id => getMemberDetails(id))}
-                          tasks={tasks}
-                        />
-                      </TabsContent>
-                      
-                      <div className="flex justify-end mt-4">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewDetails(project.id);
-                          }}
-                        >
-                          Masquer les détails
-                        </Button>
+                        
+                        <div className="flex justify-end">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewDetails(project.id);
+                            }}
+                          >
+                            Masquer les détails
+                          </Button>
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>
