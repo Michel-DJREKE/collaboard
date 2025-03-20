@@ -1,3 +1,4 @@
+
 import { useState, useCallback, Fragment } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,9 @@ import {
   Search,
   List,
   LayoutGrid,
-  Filter
+  Filter,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -51,6 +54,9 @@ import { Progress } from "@/components/ui/progress";
 import ProjectDialog from "@/components/projects/ProjectDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ProjectFilter from "@/components/projects/ProjectFilter";
+import ProjectTaskList from "@/components/projects/ProjectTaskList";
+import ProjectMemberStats from "@/components/projects/ProjectMemberStats";
+import { useTaskStore } from "@/lib/task-service";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -159,6 +165,8 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showDetails, setShowDetails] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'team'>('overview');
+  const { tasks } = useTaskStore();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
@@ -280,6 +288,8 @@ export default function Projects() {
 
   const handleViewDetails = (projectId: string) => {
     setShowDetails(showDetails === projectId ? null : projectId);
+    // Réinitialiser à l'onglet "overview" lorsqu'on ouvre/ferme les détails
+    setActiveTab('overview');
   };
 
   const renderGridView = () => (
@@ -364,53 +374,77 @@ export default function Projects() {
             </Button>
           </CardFooter>
           {showDetails === project.id && (
-            <div className="p-4 mt-2 bg-muted/30 rounded-b-lg border-t">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-semibold mb-1">Description</h4>
-                  <p className="text-sm text-muted-foreground">{project.description || "Aucune description disponible"}</p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
+            <div className="mt-2 bg-muted/30 rounded-b-lg border-t">
+              <div className="border-b">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'overview' | 'tasks' | 'team')} className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="overview">Aperçu</TabsTrigger>
+                    <TabsTrigger value="tasks">Tâches</TabsTrigger>
+                    <TabsTrigger value="team">Équipe</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              
+              <div className="p-4">
+                <TabsContent value="overview" className="m-0 space-y-4">
                   <div>
-                    <h4 className="text-sm font-semibold mb-1">Date de début</h4>
-                    <p className="text-sm text-muted-foreground">{formatDate(project.startDate)}</p>
+                    <h4 className="text-sm font-semibold mb-1">Description</h4>
+                    <p className="text-sm text-muted-foreground">{project.description || "Aucune description disponible"}</p>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-semibold mb-1">Date de fin</h4>
-                    <p className="text-sm text-muted-foreground">{formatDate(project.endDate)}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-semibold mb-1">Membres du projet</h4>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {project.members.map(memberId => {
-                      const member = getMemberDetails(memberId);
-                      return (
-                        <div key={memberId} className="flex items-center gap-1 text-xs bg-background border rounded-full px-3 py-1">
-                          <Avatar className="h-5 w-5">
-                            {member.avatar && <AvatarImage src={member.avatar} />}
-                            <AvatarFallback className="text-[10px]">{member.initials}</AvatarFallback>
-                          </Avatar>
-                          <span>{member.name}</span>
-                        </div>
-                      );
-                    })}
-                    {project.members.length === 0 && <span className="text-sm text-muted-foreground">Aucun membre</span>}
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-semibold mb-1">Progression</h4>
-                  <div className="space-y-2">
-                    <Progress value={project.progress} />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Tâches: {project.tasksCount.completed}/{project.tasksCount.total}</span>
-                      <span>{project.progress}% terminé</span>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-1">Date de début</h4>
+                      <p className="text-sm text-muted-foreground">{formatDate(project.startDate)}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold mb-1">Date de fin</h4>
+                      <p className="text-sm text-muted-foreground">{formatDate(project.endDate)}</p>
                     </div>
                   </div>
-                </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-semibold mb-1">Membres du projet</h4>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {project.members.map(memberId => {
+                        const member = getMemberDetails(memberId);
+                        return (
+                          <div key={memberId} className="flex items-center gap-1 text-xs bg-background border rounded-full px-3 py-1">
+                            <Avatar className="h-5 w-5">
+                              {member.avatar && <AvatarImage src={member.avatar} />}
+                              <AvatarFallback className="text-[10px]">{member.initials}</AvatarFallback>
+                            </Avatar>
+                            <span>{member.name}</span>
+                          </div>
+                        );
+                      })}
+                      {project.members.length === 0 && <span className="text-sm text-muted-foreground">Aucun membre</span>}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-semibold mb-1">Progression</h4>
+                    <div className="space-y-2">
+                      <Progress value={project.progress} />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Tâches: {project.tasksCount.completed}/{project.tasksCount.total}</span>
+                        <span>{project.progress}% terminé</span>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="tasks" className="m-0">
+                  <ProjectTaskList projectId={project.id} />
+                </TabsContent>
+                
+                <TabsContent value="team" className="m-0">
+                  <ProjectMemberStats 
+                    projectId={project.id} 
+                    members={project.members.map(id => getMemberDetails(id))}
+                    tasks={tasks}
+                  />
+                </TabsContent>
               </div>
             </div>
           )}
@@ -531,7 +565,17 @@ export default function Projects() {
                 {showDetails === project.id && (
                   <TableRow>
                     <TableCell colSpan={7} className="bg-muted/30 px-6 py-4">
-                      <div className="space-y-4">
+                      <div className="border-b mb-4">
+                        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'overview' | 'tasks' | 'team')} className="w-full">
+                          <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="overview">Aperçu</TabsTrigger>
+                            <TabsTrigger value="tasks">Tâches</TabsTrigger>
+                            <TabsTrigger value="team">Équipe</TabsTrigger>
+                          </TabsList>
+                        </Tabs>
+                      </div>
+                      
+                      <TabsContent value="overview" className="m-0 space-y-4">
                         <div>
                           <h4 className="text-sm font-semibold mb-1">Description complète</h4>
                           <p className="text-sm text-muted-foreground">{project.description || "Aucune description disponible"}</p>
@@ -568,19 +612,31 @@ export default function Projects() {
                             </div>
                           </div>
                         </div>
-                        
-                        <div className="flex justify-end">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewDetails(project.id);
-                            }}
-                          >
-                            Masquer les détails
-                          </Button>
-                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="tasks" className="m-0">
+                        <ProjectTaskList projectId={project.id} />
+                      </TabsContent>
+                      
+                      <TabsContent value="team" className="m-0">
+                        <ProjectMemberStats 
+                          projectId={project.id} 
+                          members={project.members.map(id => getMemberDetails(id))}
+                          tasks={tasks}
+                        />
+                      </TabsContent>
+                      
+                      <div className="flex justify-end mt-4">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewDetails(project.id);
+                          }}
+                        >
+                          Masquer les détails
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
