@@ -1,5 +1,4 @@
-
-import { useState, useCallback } from 'react';
+import { useState, useCallback, Fragment } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -270,12 +269,10 @@ export default function Projects() {
   }, []);
 
   const filteredProjects = projects.filter(project => {
-    // Appliquer le filtre de recherche (titre, description)
     const matchesSearch = searchQuery === '' || 
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    // Appliquer le filtre de statut
     const matchesStatus = !statusFilter || project.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -285,7 +282,6 @@ export default function Projects() {
     setShowDetails(showDetails === projectId ? null : projectId);
   };
 
-  // Rendre la vue en grille
   const renderGridView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredProjects.map((project) => (
@@ -433,8 +429,7 @@ export default function Projects() {
       )}
     </div>
   );
-  
-  // Rendre la vue en liste
+
   const renderListView = () => (
     <div className="overflow-hidden rounded-md border">
       <Table>
@@ -461,7 +456,7 @@ export default function Projects() {
             </TableRow>
           ) : (
             filteredProjects.map((project) => (
-              <React.Fragment key={project.id}>
+              <Fragment key={project.id}>
                 <TableRow className="cursor-pointer" onClick={() => handleViewDetails(project.id)}>
                   <TableCell>
                     <div className="font-medium">{project.title}</div>
@@ -590,7 +585,7 @@ export default function Projects() {
                     </TableCell>
                   </TableRow>
                 )}
-              </React.Fragment>
+              </Fragment>
             ))
           )}
         </TableBody>
