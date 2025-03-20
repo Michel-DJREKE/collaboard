@@ -1,4 +1,3 @@
-
 import { 
   PieChart, 
   Pie, 
@@ -47,10 +46,16 @@ interface ProjectMemberStatsProps {
 export default function ProjectMemberStats({ projectId, members, tasks }: ProjectMemberStatsProps) {
   // Calculer les statistiques pour chaque membre
   const memberStats: MemberStats[] = members.map(member => {
-    const memberTasks = tasks.filter(task => task.assignee?.id === member.id || task.assignee?.name === member.name);
+    // Fix #1: Use the member.id to filter tasks instead of relying on assignee.id
+    const memberTasks = tasks.filter(task => 
+      task.assignee?.name === member.name
+    );
+    
+    // Fix #2: Use correct status values from the Task type
     const completedTasks = memberTasks.filter(task => task.status === 'done');
     const inProgressTasks = memberTasks.filter(task => task.status === 'in-progress');
-    const pendingTasks = memberTasks.filter(task => task.status === 'todo' || task.status === 'backlog');
+    const pendingTasks = memberTasks.filter(task => task.status === 'to-do' || task.status === 'review');
+    
     const averageProgress = memberTasks.length > 0 
       ? memberTasks.reduce((sum, task) => sum + (task.progress || 0), 0) / memberTasks.length 
       : 0;
