@@ -1,4 +1,3 @@
-
 import { useState, useCallback, Fragment } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -88,6 +87,13 @@ interface Project {
   };
 }
 
+interface TeamMember {
+  id: string;
+  name: string;
+  avatar: string | null;
+  initials: string;
+}
+
 const INITIAL_PROJECTS: Project[] = [
   {
     id: '1',
@@ -147,7 +153,7 @@ const INITIAL_PROJECTS: Project[] = [
   }
 ];
 
-const TEAM_MEMBERS = [
+const TEAM_MEMBERS: TeamMember[] = [
   { id: '1', name: 'Sophie Martin', avatar: null, initials: 'SM' },
   { id: '2', name: 'Thomas Dubois', avatar: null, initials: 'TD' },
   { id: '3', name: 'Marie Leroy', avatar: null, initials: 'ML' },
@@ -268,8 +274,13 @@ export default function Projects() {
     }
   };
   
-  const getMemberDetails = (memberId: string) => {
-    return TEAM_MEMBERS.find(member => member.id === memberId) || { name: 'Inconnu', initials: '??', avatar: null };
+  const getMemberDetails = (memberId: string): TeamMember => {
+    return TEAM_MEMBERS.find(member => member.id === memberId) || { 
+      id: 'unknown', 
+      name: 'Inconnu', 
+      initials: '??', 
+      avatar: null 
+    };
   };
 
   const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,7 +299,6 @@ export default function Projects() {
 
   const handleViewDetails = (projectId: string) => {
     setShowDetails(showDetails === projectId ? null : projectId);
-    // Réinitialiser à l'onglet "overview" lorsqu'on ouvre/ferme les détails
     setActiveTab('overview');
   };
 

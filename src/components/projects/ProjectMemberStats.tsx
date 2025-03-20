@@ -21,7 +21,7 @@ interface MemberStats {
   id: string;
   name: string;
   initials: string;
-  avatar?: string;
+  avatar?: string | null;
   tasksAssigned: number;
   tasksCompleted: number;
   progress: number;
@@ -51,7 +51,7 @@ export default function ProjectMemberStats({ projectId, members, tasks }: Projec
       id: member.id,
       name: member.name,
       initials: member.initials,
-      avatar: member.avatar || undefined,
+      avatar: member.avatar,
       tasksAssigned: memberTasks.length,
       tasksCompleted: completedTasks.length,
       progress: Math.round(averageProgress)
@@ -180,3 +180,4 @@ export default function ProjectMemberStats({ projectId, members, tasks }: Projec
     </div>
   );
 }
+
